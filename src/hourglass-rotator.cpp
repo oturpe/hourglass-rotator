@@ -19,6 +19,17 @@
 #include "Debug.h"
 #endif
 
+/// \brief Turns the indicator led on of off
+///
+/// \param lit
+///    If led is turned on. Otherwise it is turned off.
+void setIndicator(bool lit) {
+  if (lit)
+    PORTD |= BV(PORTD5);
+  else
+    PORTD &= ~BV(PORTD5);
+}
+
 /// Limits given value by given minimum and maximum values.
 ///
 /// \param value
@@ -51,15 +62,39 @@ int main() {
     */
   #endif
 
-  // Set pin D5 as output
+  // Set pin D5 as output (debug indicator)
   DDRD |= BV(DDD5);
+// Set pin D4 as output (relay)
+  DDRD |= BV(DDD4);
+// Set pins A0 and A1 as inputs with pullup enabled
+  PORTA |= BV(PORTA0) | BV(PORTA1);
 
-  uint8_t counter = 0x80;
+  uint8_t counter = 0;
+  bool relayPulls = false;
+  bool cwButtonDown;
+  bool ccwButtonDown;
+
   while(true) {
     _delay_ms(500);
-    PORTD |= BV(PORTD5);
+    setIndicator(true);
     _delay_ms(500);
-    PORTD &= !BV(PORTD5);
+    setIndicator(false);
 
+    if (!(counter % 4)) {
+      if(relayPulls)
+        PORTD &= ~BV(PORT4);
+      else
+        PORTD |= BV(PORT4);
+
+      relayPulls = !relayPulls;
     }
+
+    counter += 1;
+
+    // No negation here becauee the buttons are of "normally on" type.
+    cwButtonDown = PINA & BV(PINA0);
+    ccwButtonDown = PINA & BV(PINA1);
+    if (cwButtonDown || ccwButtonDown)
+      setIndicator(true);
+  }
 }
