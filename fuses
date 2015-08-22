@@ -1,0 +1,4 @@
+mcu=t2313
+programmer=arduinoisp
+
+sudo avrdude -c ${programmer} -p ${mcu} -U lfuse:w:0x64:m -U hfuse:w:0xd9:m -U efuse:w:0x01:m
