@@ -19,6 +19,49 @@
 #include "Debug.h"
 #endif
 
+// The limits of motor movement.
+enum Limit {
+  // Limit in clockwise direction
+  L_CW,
+  // Limit in counterclockwise direction
+  L_CCW,
+  // Neither limit
+  L_NONE
+};
+
+/// \class SandTimer
+///
+/// A simple timer that counts calls to wait until specified amount of ticks
+/// have been registered.
+class SandTimer {
+public:
+  /// \brief Creates a new SandTimer in unnitialized state.
+  SandTimer() : remainingTicks(-1) {}
+
+public:
+  /// \brief Initializes wait of given amount of ticks.
+  ///
+  /// \param ticks
+  ///    The number of ticks to wait
+  void beginWait(uint16_t ticks) {
+    remainingTicks = ticks;
+  }
+
+  /// \brief Waits for one tick and announces completion if the wait completes.
+  ///
+  /// \return
+  ///    If wait completed
+  bool tick() {
+    remainingTicks -= 1;
+    return !remainingTicks;
+  }
+
+private:
+  // Amount of ticks until completion of wait. Negative number means timer has
+  // not been initialized and will not ever complete wait.
+  uint16_t remainingTicks;
+};
+
 /// \brief Turns the indicator led on of off
 ///
 /// \param lit
@@ -30,26 +73,15 @@ void setIndicator(bool lit) {
     PORTD &= ~BV(PORTD5);
 }
 
-/// Limits given value by given minimum and maximum values.
+/// \brief Turns the motor on or off
 ///
-/// \param value
-///    Value to limit
-///
-/// \param min
-///    Minimum value
-///
-/// \param max
-///    Maximum value
-///
-/// \return
-///    Limited value
-int16_t limit(int16_t value, int16_t min, int16_t max) {
-  if(value < min)
-    return min;
-  if(value > max)
-    return max;
-
-  return value;
+/// \param running
+///    If the motor is running. Otherwise it is not running.
+void setMotor(bool running) {
+  if (running)
+    PORTD |= BV(PORTD4);
+  else
+    PORTD &= ~BV(PORTD4);
 }
 
 int main() {
@@ -69,32 +101,47 @@ int main() {
 // Set pins A0 and A1 as inputs with pullup enabled
   PORTA |= BV(PORTA0) | BV(PORTA1);
 
-  uint8_t counter = 0;
+  uint16_t counter = 0;
   bool relayPulls = false;
+  bool indicatorLit = 0;
   bool cwButtonDown;
   bool ccwButtonDown;
+  Limit lastLimit = L_NONE;
+  SandTimer sandTimer;
+
+  // Starts with motor running
+  setMotor(true);
 
   while(true) {
-    _delay_ms(500);
-    setIndicator(true);
-    _delay_ms(500);
-    setIndicator(false);
+    counter += 1;
+    _delay_ms(LOOP_DELAY);
 
-    if (!(counter % 4)) {
-      if(relayPulls)
-        PORTD &= ~BV(PORT4);
-      else
-        PORTD |= BV(PORT4);
-
-      relayPulls = !relayPulls;
+    if(counter % INDICATOR_HALF_PERIOD == 0) {
+      indicatorLit = !indicatorLit;
+      setIndicator(indicatorLit);
     }
 
-    counter += 1;
-
-    // No negation here becauee the buttons are of "normally on" type.
     cwButtonDown = PINA & BV(PINA0);
     ccwButtonDown = PINA & BV(PINA1);
-    if (cwButtonDown || ccwButtonDown)
-      setIndicator(true);
+
+    bool limitReached = false;
+    if (cwButtonDown && lastLimit != L_CW) {
+      limitReached = true;
+      lastLimit = L_CW;
+    }
+    if (ccwButtonDown && lastLimit != L_CCW) {
+      limitReached = true;
+      lastLimit = L_CCW;
+    }
+
+    if (limitReached) {
+      setMotor(false);
+      sandTimer.beginWait(HOURGLASS_PERIOD);
+    } else {
+      bool timerDone = sandTimer.tick();
+      if (timerDone) {
+        setMotor(true);
+      }
+    }
   }
 }
