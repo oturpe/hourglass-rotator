@@ -10,7 +10,7 @@
 
 // Amount of time to wait for the hourglass to empty. Given in units of
 // LOOP_DELAY
-#define HOURGLASS_PERIOD 20 /*one second*/ * 10
+#define HOURGLASS_PERIOD 20 /*one second*/ * (60 * /*minutes*/ 16 + /*seconds*/ 50)
 
 //Enables debug messaging
 #define DEBUG
