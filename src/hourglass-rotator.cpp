@@ -15,10 +15,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
-#ifdef DEBUG
-#include "Debug.h"
-#endif
-
 // The limits of motor movement.
 enum Limit {
   // Limit in clockwise direction
@@ -35,7 +31,7 @@ enum Limit {
 /// have been registered.
 class SandTimer {
 public:
-  /// \brief Creates a new SandTimer in unnitialized state.
+  /// \brief Creates a new SandTimer in uninitialized state.
   SandTimer() : remainingTicks(-1) {}
 
 public:
@@ -88,17 +84,11 @@ int main() {
   // Wait for powr supply capacitors to charge etc.
   //_delay_ms(1000);
 
-  #ifdef DEBUG
-    /* TODO: implement debugging
-    Debug debug(DEBUG_FREQ);
-    */
-  #endif
-
-  // Set pin D5 as output (debug indicator)
+  // Set pin D5 as output (indicator)
   DDRD |= BV(DDD5);
-// Set pin D4 as output (relay)
+  // Set pin D4 as output (relay)
   DDRD |= BV(DDD4);
-// Set pins A0 and A1 as inputs with pullup enabled
+  // Set pins A0 and A1 as inputs with pullup enabled
   PORTA |= BV(PORTA0) | BV(PORTA1);
 
   uint16_t counter = 0;
